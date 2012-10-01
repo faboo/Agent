@@ -88,9 +88,12 @@
     <Compile Include="ControlExtension.cs" />
     <Compile Include="Definitions.cs" />
     <Compile Include="Frequency.cs" />
+    <Compile Include="Highlight.cs" />
+    <Compile Include="Highlighter.cs" />
     <Compile Include="LinesPresenter.cs" />
     <Compile Include="MergedDictionary.cs" />
     <Compile Include="MotionMode.cs" />
+    <Compile Include="Movement.cs" />
     <Compile Include="Range.cs" />
     <Compile Include="Reminder.cs" />
     <Compile Include="Reminders.cs" />
@@ -100,7 +103,7 @@
       <SubType>Designer</SubType>
     </Page>
     <Compile Include="AgentCommand.cs" />
-    <Compile Include="SingeApplicationInstance.cs" />
+    <Compile Include="SingleApplicationInstance.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

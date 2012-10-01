@@ -170,9 +170,11 @@ namespace Agent {
                 if(length + range.StartColumn > line.Text.Length)
                     length = line.Text.Length - range.StartColumn;
 
-                text += line.Text.Substring(range.StartColumn, length);
-                if(delete)
-                    line.Text = line.Text.Remove(range.StartColumn, length);
+                if(length > 0) {
+                    text += line.Text.Substring(range.StartColumn, length - 1);
+                    if(delete)
+                        line.Text = line.Text.Remove(range.StartColumn, length - 1);
+                }
             }
 
             OnCursorModified(null, new EventArgs());

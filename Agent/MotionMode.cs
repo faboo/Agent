@@ -14,71 +14,9 @@ namespace Agent {
         public static MotionMode Command = new MotionMode {
             Gestures = new Dictionary<InputGesture, Func<PadEditor, Range>> {
                 { new EditGesture(Key.Escape), editor => null },
-                { new EditGesture(Key.W), editor => {
-                        Range range = new Range(editor.Pad.Cursor);
-
-                        range.EndRow = range.StartRow;
-                        range.EndColumn = range.StartColumn;
-
-                        for(int words = editor.Count == null ? 1 : (int)editor.Count;
-                                words > 0; words -= 1){
-                            // move to the first non-space
-                            while(range.EndColumn < editor.Pad.CurrentLine.Text.Length
-                                    && Char.IsWhiteSpace(editor.Pad.CurrentLine.Text[range.EndColumn]))
-                                ++range.EndColumn;
-
-                            while (range.EndColumn < editor.Pad.CurrentLine.Text.Length
-                                    && !Char.IsWhiteSpace(
-                                        editor.Pad.CurrentLine.Text[range.EndColumn]))
-                                ++range.EndColumn;
-                        }
-
-                        return range;
-                    }
-                },
-                { new EditGesture(Key.E), editor => {
-                        Range range = new Range(editor.Pad.Cursor);
-
-                        range.EndRow = range.StartRow;
-                        range.EndColumn = range.StartColumn;
-
-                        for(int words = editor.Count == null ? 1 : (int)editor.Count;
-                                words > 0; words -= 1){
-                            // move to the first non-space
-                            while(range.EndColumn < editor.Pad.CurrentLine.Text.Length
-                                    && Char.IsWhiteSpace(editor.Pad.CurrentLine.Text[range.EndColumn]))
-                                ++range.EndColumn;
-
-                            while (range.EndColumn < editor.Pad.CurrentLine.Text.Length
-                                    && !Char.IsWhiteSpace(
-                                        editor.Pad.CurrentLine.Text[range.EndColumn + 1]))
-                                ++range.EndColumn;
-                        }
-
-                        return range;
-                    }
-                },
-                { new EditGesture(Key.B), editor => {
-                        Range range = new Range(editor.Pad.Cursor) {
-                            EndColumn = editor.Pad.Cursor.Column
-                        };
-                        
-                        for(int words = editor.Count == null ? 1 : (int)editor.Count;
-                                words > 0; words -= 1){
-                            // move to the first non-space
-                            while(range.StartColumn > 0
-                                    && Char.IsWhiteSpace(editor.Pad.CurrentLine.Text[range.StartColumn]))
-                                --range.StartColumn;
-
-                            while (range.StartColumn > 0
-                                    && !Char.IsWhiteSpace(
-                                        editor.Pad.CurrentLine.Text[range.StartColumn - 1]))
-                                --range.StartColumn;
-                        }
-
-                        return range;
-                    }
-                },
+                { new EditGesture(Key.W), editor => Movement.Word(editor) },
+                { new EditGesture(Key.E), editor => Movement.WordEnd(editor) },
+                { new EditGesture(Key.B), editor => Movement.WordBeginning(editor) },
                 // Y and D are both shortcuts for the current line
                 { new EditGesture(Key.D), editor =>
                         new Range(editor.Pad.Cursor.Row) {
@@ -90,33 +28,30 @@ namespace Agent {
                             EndColumn = editor.Pad.Lines[editor.Pad.Cursor.Row].Text.Length
                         }
                 },
+                { new EditGesture(Key.H), editor => Movement.Left(editor) },
+                { new EditGesture(Key.L), editor => Movement.Right(editor) },
                 { new EditGesture(Key.J), editor => {
-                        int endRow = editor.Pad.Cursor.Row + 
-                            (editor.Count != null? (int)editor.Count : 1);
+                        var range = Movement.Down(editor);
 
-                        if(endRow >= editor.Pad.Lines.Count)
-                            endRow = editor.Pad.Lines.Count - 1;
+                        range.StartColumn = 0;
+                        range.EndColumn = editor.Pad.Lines[range.EndRow].Text.Length + 1;
 
-                        return new Range(editor.Pad.Cursor.Row) {
-                            EndRow = endRow,
-                            EndColumn = editor.Pad.Lines[endRow].Text.Length
-                        };
+                        return range;
                     }
                 },
                 { new EditGesture(Key.K), editor => {
-                        int endRow = editor.Pad.Cursor.Row - 
-                            (editor.Count != null? (int)editor.Count : 1);
+                        var range = Movement.Up(editor);
 
-                        if(endRow < 0)
-                            endRow = 0;
+                        range.StartColumn = editor.Pad.Lines[range.StartRow].Text.Length + 1;
+                        range.EndColumn = 0;
 
-                        return new Range(editor.Pad.Cursor.Row) {
-                            StartColumn = editor.Pad.CurrentLine.Text.Length + 1,
-                            EndRow = endRow,
-                            EndColumn = 0
-                        };
+                        return range;
                     }
                 },
+                { new EditGesture(Key.D4, ModifierKeys.Shift), editor =>
+                    Movement.LineEnd(editor) },
+                { new EditGesture(Key.D6, ModifierKeys.Shift), editor => 
+                    Movement.LineHome(editor) },
             }
         };
     }

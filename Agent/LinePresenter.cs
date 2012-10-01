@@ -33,6 +33,10 @@ namespace Agent {
             return new Typeface(FontFamily, FontStyle, FontWeight, FontStretch);
         }
 
+        private Typeface CreateTypeface(Highlight highlight) {
+            return new Typeface(FontFamily, highlight.Style, highlight.Weight, FontStretch);
+        }
+
         private FormattedText MeasureText(double width) {
             if (formattedText == null) {
                 formattedText = new FormattedText(
@@ -46,6 +50,23 @@ namespace Agent {
             }
 
             return formattedText;
+        }
+
+        private FormattedText RenderHighlight(Highlight highlight) {
+            FormattedText text = new FormattedText(
+                Line.Text.Substring(highlight.Start, highlight.Length),
+                CultureInfo.CurrentUICulture,
+                FlowDirection,
+                CreateTypeface(highlight),
+                FontSize,
+                new SolidColorBrush(highlight.Foreground));
+            text.MaxTextWidth = formattedText.MaxTextWidth;
+
+            return text;
+        }
+
+        private double GetHighlightOffset(Highlight highlight) {
+            return this.GetFont().Width * highlight.Start;
         }
 
         private void OnLineChanged(Line oldValue) {
@@ -74,7 +95,15 @@ namespace Agent {
         }
 
         protected override void OnRender(DrawingContext drawingContext) {
-            drawingContext.DrawText(formattedText, new Point(0, 0));
+            if(Line != null) {
+                drawingContext.DrawText(formattedText, new Point(0, 0));
+
+                foreach(Highlight hl in Line.Highlights) {
+                    drawingContext.DrawText(
+                        RenderHighlight(hl),
+                        new Point(GetHighlightOffset(hl), 0));
+                }
+            }
         }
 
         private static void OnLineChanged(object sender, DependencyPropertyChangedEventArgs args) {

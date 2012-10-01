@@ -10,6 +10,14 @@ namespace Agent {
         public static readonly DependencyProperty ColumnProperty = DependencyProperty.Register("Column", typeof(int), typeof(Cursor), new FrameworkPropertyMetadata { AffectsRender = true });
 		public static readonly DependencyProperty TypeProperty = DependencyProperty.Register("Type", typeof(CursorType), typeof(Cursor), new FrameworkPropertyMetadata { AffectsRender = true });
 
+        public Cursor() {
+        }
+
+        public Cursor(Range range) {
+            Row = range.EndRow;
+            Column = range.EndColumn;
+        }
+
 		public int Row
 		{
 			get { return (int)GetValue(RowProperty); }

@@ -46,19 +46,11 @@ namespace Agent {
             CommandBindings.Add(new CommandBinding(EditingCommands.PrependText, ExecutePrependText));
             CommandBindings.Add(new CommandBinding(EditingCommands.AppendText, ExecuteAppendText));
 
-            CommandBindings.Add(new CommandBinding(EditingCommands.YankLine, ExecuteYankLine));
+            CommandBindings.Add(new CommandBinding(EditingCommands.Move, ExecuteMove));
+
             CommandBindings.Add(new CommandBinding(EditingCommands.Yank, ExecuteYank));
-
-            CommandBindings.Add(new CommandBinding(EditingCommands.MoveLeft, ExecuteMoveLeft, CanMoveLeft));
-            CommandBindings.Add(new CommandBinding(EditingCommands.MoveRight, ExecuteMoveRight, CanMoveRight));
-            CommandBindings.Add(new CommandBinding(EditingCommands.MoveUp, ExecuteMoveUp, CanMoveUp));
-            CommandBindings.Add(new CommandBinding(EditingCommands.MoveDown, ExecuteMoveDown, CanMoveDown));
-            CommandBindings.Add(new CommandBinding(EditingCommands.MoveEnd, ExecuteMoveEnd, CanMoveEnd));
-            CommandBindings.Add(new CommandBinding(EditingCommands.MoveHome, ExecuteMoveHome, CanMoveHome));
-
             CommandBindings.Add(new CommandBinding(EditingCommands.DeleteBack, ExecuteDeleteBack, CanDeleteBack));
             CommandBindings.Add(new CommandBinding(EditingCommands.Delete, ExecuteDelete));
-            CommandBindings.Add(new CommandBinding(EditingCommands.DeleteLine, ExecuteDeleteLine));
 
             SetMode(DefaultModes.Command);
         }
@@ -73,11 +65,21 @@ namespace Agent {
             get {
                 int? value = null;
 
-                if(count != null) {
+                if(!String.IsNullOrEmpty(count)) {
                     value = Int32.Parse(count);
                 }
 
                 return value;
+            }
+        }
+        public int TopLine {
+            get {
+                return linesPresenter.LineOffset;
+            }
+        }
+        public int BottomLine {
+            get {
+                return linesPresenter.LineOffset + linesPresenter.VisibleLines - 1;
             }
         }
 
@@ -280,56 +282,11 @@ namespace Agent {
             Pad.Cursor.Column = range.StartColumn;
         }
 
-        private void ExecuteYankLine(object sender, ExecutedRoutedEventArgs args) {
-            Clipboard.SetText(Pad.CurrentLine.Text);
-        }
+        private void ExecuteMove(object sender, ExecutedRoutedEventArgs args) {
+            Cursor cursor = (Cursor)args.Parameter;
 
-        private void ExecuteMoveLeft(object sender, ExecutedRoutedEventArgs args) {
-            Pad.Column -= args.Parameter == null? 1 : (int)args.Parameter;
-        }
-
-        private void CanMoveLeft(object sender, CanExecuteRoutedEventArgs args) {
-            args.CanExecute = Pad.Column > 0;
-        }
-
-        private void ExecuteMoveRight(object sender, ExecutedRoutedEventArgs args) {
-            Pad.Column += args.Parameter == null ? 1 : (int)args.Parameter;
-        }
-
-        private void CanMoveRight(object sender, CanExecuteRoutedEventArgs args) {
-            args.CanExecute = Pad.Column < Pad.Lines[Pad.Cursor.Row].Text.Length;
-        }
-
-        private void ExecuteMoveUp(object sender, ExecutedRoutedEventArgs args) {
-            Pad.Row -= args.Parameter == null ? 1 : (int)args.Parameter;
-        }
-
-        private void CanMoveUp(object sender, CanExecuteRoutedEventArgs args) {
-            args.CanExecute = Pad.Row > 0;
-        }
-
-        private void ExecuteMoveDown(object sender, ExecutedRoutedEventArgs args) {
-            Pad.Cursor.Row += args.Parameter == null ? 1 : (int)args.Parameter;
-        }
-
-        private void CanMoveDown(object sender, CanExecuteRoutedEventArgs args) {
-            args.CanExecute = Pad.Cursor.Row+1 < Pad.Lines.Count;
-        }
-
-        private void ExecuteMoveEnd(object sender, ExecutedRoutedEventArgs args) {
-            Pad.Cursor.Column = Pad.CurrentLine.Text.Length;
-        }
-
-        private void CanMoveEnd(object sender, CanExecuteRoutedEventArgs args) {
-            args.CanExecute = true;
-        }
-
-        private void ExecuteMoveHome(object sender, ExecutedRoutedEventArgs args) {
-            Pad.Cursor.Column = 0;
-        }
-
-        private void CanMoveHome(object sender, CanExecuteRoutedEventArgs args) {
-            args.CanExecute = true;
+            Pad.Row = cursor.Row;
+            Pad.Column = cursor.Column;
         }
 
         private void ExecuteDeleteBack(object sender, ExecutedRoutedEventArgs args) {
@@ -360,11 +317,6 @@ namespace Agent {
                 Pad.Cursor.Row = Pad.Lines.Count - 1;
                 Pad.Cursor.Column = 0;
             }
-        }
-
-        private void ExecuteDeleteLine(object sender, ExecutedRoutedEventArgs args) {
-            Clipboard.SetText(Pad.CurrentLine.Text);
-            Pad.RemoveLine(Pad.Cursor.Row);
         }
 
         private void ExecuteRunCommand(object sender, ExecutedRoutedEventArgs args) {

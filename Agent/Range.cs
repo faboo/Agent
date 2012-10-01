@@ -35,6 +35,12 @@ namespace Agent {
                 StartColumn = EndColumn;
                 EndColumn = swap;
             }
+            else if(EndColumn < StartColumn) {
+                int swap = StartColumn;
+
+                StartColumn = EndColumn;
+                EndColumn = swap;
+            }
         }
     }
 }
