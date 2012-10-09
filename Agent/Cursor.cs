@@ -34,6 +34,15 @@ namespace Agent {
 			set { SetValue(TypeProperty, value); }
 		}
 
+        protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs args) {
+            try {
+                base.OnPropertyChanged(args);
+            }
+            catch(ArgumentOutOfRangeException) {
+                // Changing the cursor throws this on occasion. It shouldn't.
+            }
+        }
+
         protected override Freezable CreateInstanceCore() {
             return new Cursor();
         }

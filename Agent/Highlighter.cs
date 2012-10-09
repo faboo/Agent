@@ -41,6 +41,8 @@ namespace Agent {
         };
 
         public static void Highlight(Line line) {
+            line.Highlights.Clear();
+
             foreach(var hl in Highlights){
                 var matches = hl.Key.Matches(line.Text);
 

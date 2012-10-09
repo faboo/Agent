@@ -8,6 +8,12 @@ using System.IO;
 
 namespace Agent {
     public static class DataStore {
+#if DEBUG
+        static private string DataStoreName = "DEBUGagent.sdf";
+#else
+        static private string DataStoreName = "agent.sdf";
+#endif
+
         static private SqlCeConnection connection;
 
         public static SqlCeConnection Connection {

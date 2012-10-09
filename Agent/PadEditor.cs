@@ -13,6 +13,9 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Globalization;
 using System.Windows.Controls.Primitives;
+using System.Text.RegularExpressions;
+using System.IO;
+using System.Diagnostics;
 
 namespace Agent {
     public class PadEditor: Control {
@@ -27,6 +30,9 @@ namespace Agent {
         private Action<Range> withMotion = null;
         private string count = null;
         private LinesPresenter linesPresenter = null;
+        private int maxUndoLevels = 100;
+        private List<IChange> undoLevels = new List<IChange>();
+        private int? insertStarted = null;
 
         public PadEditor() {
             IsTabStop = false;
@@ -39,18 +45,17 @@ namespace Agent {
 
             CommandBindings.Add(new CommandBinding(EditingCommands.SetMode, ExecuteSetMode));
             CommandBindings.Add(new CommandBinding(EditingCommands.RunCommand, ExecuteRunCommand, CanRunCommand));
+            CommandBindings.Add(new CommandBinding(EditingCommands.OpenFile, ExecuteOpenFile));
 
             CommandBindings.Add(new CommandBinding(EditingCommands.InsertNewline, ExecuteInsertNewline));
-            CommandBindings.Add(new CommandBinding(EditingCommands.AppendNewline, ExecuteAppendNewline));
-            CommandBindings.Add(new CommandBinding(EditingCommands.PrependNewline, ExecutePrependNewline));
-            CommandBindings.Add(new CommandBinding(EditingCommands.PrependText, ExecutePrependText));
+            CommandBindings.Add(new CommandBinding(EditingCommands.InsertText, ExecuteInsertText));
             CommandBindings.Add(new CommandBinding(EditingCommands.AppendText, ExecuteAppendText));
 
             CommandBindings.Add(new CommandBinding(EditingCommands.Move, ExecuteMove));
 
             CommandBindings.Add(new CommandBinding(EditingCommands.Yank, ExecuteYank));
-            CommandBindings.Add(new CommandBinding(EditingCommands.DeleteBack, ExecuteDeleteBack, CanDeleteBack));
             CommandBindings.Add(new CommandBinding(EditingCommands.Delete, ExecuteDelete));
+            CommandBindings.Add(new CommandBinding(EditingCommands.Undo, ExecuteUndo, CanUndo));
 
             SetMode(DefaultModes.Command);
         }
@@ -101,6 +106,22 @@ namespace Agent {
             linesPresenter.ScrollChanged += OnScrolled;
         }
 
+        private void PushChange(IChange change) {
+            undoLevels.Add(change);
+            if(undoLevels.Count >= maxUndoLevels)
+                undoLevels.RemoveAt(0);
+        }
+
+        private void UndoLastChange() {
+            IChange change = undoLevels.Last();
+            Cursor position = change.Do(this.Pad);
+
+            Pad.Cursor.Row = position.Row;
+            Pad.Cursor.Column = position.Column;
+
+            undoLevels.RemoveAt(undoLevels.Count - 1);
+        }
+
         private void OnPadChanged(DependencyPropertyChangedEventArgs args) {
             if(args.OldValue != null)
                 (args.OldValue as Pad).Cursor.Changed -= OnCursorChanged;
@@ -138,21 +159,38 @@ namespace Agent {
                     });
         }
 
-        private char FixCase(KeyboardDevice keyboard, char ch) {
-            if (!(keyboard.IsKeyDown(Key.LeftShift) ||
-                    keyboard.IsKeyDown(Key.RightShift)))
-                ch = Char.ToLower(ch, CultureInfo.CurrentUICulture);
+        private string GetFile(int row, int column) {
+            bool isFile = false;
+            var fileRegex = new Regex(@"^\s*.:\\([^\\]+\\)*[^\\]+");
+            var driveRegex = new Regex(@"^\s*.:\\$");
+            var match = fileRegex.Match(Pad.Lines[row].Text.Substring(column));
+            string file = null;
 
-            return ch;
+            if(match.Success) {
+                file = match.Value;
+
+                do {
+                    isFile = File.Exists(file) || Directory.Exists(file);
+
+                    if(!isFile)
+                        file = System.IO.Path.GetDirectoryName(file);
+                } while(!isFile && !driveRegex.IsMatch(file));
+            }
+
+            return isFile ? file : null;
         }
 
         protected override void OnTextInput(TextCompositionEventArgs args) {
             // do auto-insert for insert modes
             if (defaultInsert) {
-                Pad.Lines[Pad.Cursor.Row].Text = Pad.Lines[Pad.Cursor.Row].Text.Insert(
-                    Pad.Cursor.Column,
+                if(insertStarted == null)
+                    insertStarted = Pad.Column;
+
+                Pad.CurrentLine.Text = Pad.CurrentLine.Text.Insert(
+                    Pad.Column,
                     args.Text);
-                Pad.Cursor.Column += args.Text.Length;
+                Pad.Column += args.Text.Length;
+                
                 count = null;
             }
             else if(args.Text.All(c => Char.IsDigit(c))) {
@@ -178,6 +216,15 @@ namespace Agent {
         }
 
         private void ExecuteHandleKey(object sender, ExecutedRoutedEventArgs args) {
+            // push any inserted text onto the undo stack
+            if(insertStarted != null) {
+                PushChange(new Remove(new Range(Pad.Row) {
+                        StartColumn = (int)insertStarted,
+                        EndColumn = Pad.Column,
+                    }));
+                insertStarted = null;
+            }
+
             // handle regular commands
             if(args.Parameter is Action<PadEditor>){
                 (args.Parameter as Action<PadEditor>)(this);
@@ -209,16 +256,21 @@ namespace Agent {
             if (Pad.CurrentLine.Text.Contains(":")) {
                 string maybeCommand = Pad.CurrentLine.Text.Split(':')[0];
                 int row = Pad.Cursor.Row + 1;
+                bool addedParameters = false;
 
                 if (Commands.IsCommand(maybeCommand)) {
                     var parameters = Commands.GetParamaters(maybeCommand);
 
-                    foreach (var param in parameters)
+                    foreach(var param in parameters) {
                         Pad.InsertLine(row++, "  " + param + ":");
+                        addedParameters = true;
+                    }
                 }
 
-                nextLine = "  " + nextLine;
-                Pad.InsertLine(row, nextLine);
+                if(!addedParameters || !String.IsNullOrWhiteSpace(nextLine)) {
+                    nextLine = "  " + nextLine;
+                    Pad.InsertLine(row, nextLine);
+                }
             }
             else {
                 Pad.InsertLine(Pad.Cursor.Row + 1, nextLine);
@@ -227,29 +279,33 @@ namespace Agent {
             Pad.Cursor.Column = Pad.CurrentLine.Text.Length;
         }
 
-        private void ExecuteAppendNewline(object sender, ExecutedRoutedEventArgs args) {
-            Pad.InsertLine(Pad.Cursor.Row + 1, "");
-            Pad.Cursor.Row += 1;
-            Pad.Cursor.Column = 0;
-        }
-
-        private void ExecutePrependNewline(object sender, ExecutedRoutedEventArgs args) {
-            Pad.InsertLine(Pad.Cursor.Row, "");
-            Pad.Cursor.Column = 0;
-        }
-
-        private void ExecutePrependText(object sender, ExecutedRoutedEventArgs args) {
+        private void ExecuteInsertText(object sender, ExecutedRoutedEventArgs args) {
             string text = args.Parameter as string;
 
             if (text.Contains('\n')) {
                 var lines = text.Split('\n');
+                int startRow = Pad.Cursor.Row;
+
                 foreach(string line in lines.Take(lines.Count() - 1)) {
                     Pad.InsertLine(Pad.Cursor.Row, line);
                     Pad.Cursor.Row += 1;
                 }
+
+                PushChange(new Remove(new Range(startRow) {
+                    EndRow = Pad.Cursor.Row - 1,
+                    EndColumn = Pad.Lines[Pad.Cursor.Row - 1].Text.Length,
+                }));
             }
             else {
-                Pad.CurrentLine.Text = Pad.CurrentLine.Text.Insert(Pad.Cursor.Column, text);
+                int column = Pad.Cursor.Column;
+
+                Pad.CurrentLine.Text = Pad.CurrentLine.Text.Insert(
+                    column,
+                    text);
+                PushChange(new Remove(new Range(Pad.Cursor.Row) {
+                        StartColumn = column,
+                        EndColumn = column + text.Length
+                    }));
                 Pad.Cursor.Column += text.Length;
             }
         }
@@ -259,17 +315,30 @@ namespace Agent {
 
             if (text.Contains('\n')) {
                 var lines = text.Split('\n');
+                int startRow = Pad.Cursor.Row + 1;
+                
                 foreach(string line in lines.Take(lines.Count() - 1)) {
-                    Pad.InsertLine(Pad.Cursor.Row + 1, line);
                     Pad.Cursor.Row += 1;
+                    Pad.InsertLine(Pad.Cursor.Row, line);
                 }
+
+                PushChange(new Remove(new Range(startRow) {
+                    EndRow = Pad.Cursor.Row,
+                    EndColumn = Pad.Lines[Pad.Cursor.Row].Text.Length,
+                }));
             }
             else {
+                int column = Pad.Cursor.Column < Pad.CurrentLine.Text.Length ?
+                        Pad.Cursor.Column + 1 :
+                        Pad.Cursor.Column;
+
                 Pad.CurrentLine.Text = Pad.CurrentLine.Text.Insert(
-                    Pad.Cursor.Column < Pad.CurrentLine.Text.Length?
-                        Pad.Cursor.Column+1 :
-                        Pad.Cursor.Column,
+                    column,
                     text);
+                PushChange(new Remove(new Range(Pad.Cursor.Row) {
+                        StartColumn = column,
+                        EndColumn = column + text.Length
+                    }));
                 Pad.Cursor.Column += text.Length;
             }
         }
@@ -289,25 +358,14 @@ namespace Agent {
             Pad.Column = cursor.Column;
         }
 
-        private void ExecuteDeleteBack(object sender, ExecutedRoutedEventArgs args) {
-            int characters = args.Command == null? 1 : (int)args.Parameter;
-
-            if (characters > Pad.Cursor.Column)
-                characters = Pad.Cursor.Column;
-
-            Clipboard.SetText(Pad.CurrentLine.Text.Substring(Pad.Cursor.Column - characters, characters));
-            Pad.CurrentLine.Text = Pad.CurrentLine.Text.Remove(Pad.Cursor.Column - characters, characters);
-            Pad.Cursor.Column -= characters;
-        }
-
-        private void CanDeleteBack(object sender, CanExecuteRoutedEventArgs args) {
-            args.CanExecute = Pad.Cursor.Column > 0;
-        }
-
         private void ExecuteDelete(object sender, ExecutedRoutedEventArgs args) {
             Range range = args.Parameter as Range;
+            string text = Pad.GetText(range, true);
 
-            Clipboard.SetText(Pad.GetText(range, true));
+            Clipboard.SetText(text);
+            PushChange(new Insert(
+                new Cursor { Column = range.StartColumn, Row = range.StartRow },
+                text));
 
             if(Pad.Cursor.Row < Pad.Lines.Count) {
                 Pad.Cursor.Row = range.StartRow;
@@ -316,6 +374,34 @@ namespace Agent {
             else {
                 Pad.Cursor.Row = Pad.Lines.Count - 1;
                 Pad.Cursor.Column = 0;
+            }
+        }
+
+        private void ExecuteUndo(object sender, ExecutedRoutedEventArgs args) {
+            UndoLastChange();
+        }
+
+        private void CanUndo(object sender, CanExecuteRoutedEventArgs args) {
+            args.CanExecute = undoLevels.Count > 0;
+        }
+
+        private void ExecuteOpenFile(object sender, ExecutedRoutedEventArgs args) {
+            int column = Pad.Column;
+            string file = null;
+
+            while(column >= 0 && (file = GetFile(Pad.Row, column)) == null)
+                column -= 1;
+
+            if(file != null) {
+                using(Process launcher = new Process()) {
+                    launcher.StartInfo = new ProcessStartInfo {
+                        ErrorDialog = true,
+                        WorkingDirectory = System.IO.Path.GetDirectoryName(file),
+                        FileName = file,
+                    };
+
+                    launcher.Start();
+                }
             }
         }
 
@@ -348,12 +434,15 @@ namespace Agent {
             result = Commands.Invoke(command, commandArgs);
 
             if (result != null) {
-                Pad.Lines.RemoveRange(start, end);
+                Range range = new Range(start) {
+                        EndRow = end,
+                        EndColumn = Pad.Lines[end].Text.Length
+                    };
 
-                foreach(string line in result.Split('\n'))
-                    Pad.InsertLine(
-                        start++,
-                        line);
+                if(!result.EndsWith("\n"))
+                    result = result + '\n';
+                EditingCommands.Delete.Execute(range, this);
+                EditingCommands.InsertText.Execute(result, this);
             }
         }
 

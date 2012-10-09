@@ -53,12 +53,13 @@ namespace Agent {
                 // Pasting text
                 //
                 { new EditGesture(Key.O, ModifierKeys.Shift), editor => {
-                        EditingCommands.PrependNewline.Execute(null, editor);
+                        EditingCommands.InsertText.Execute("\n", editor);
+                        EditingCommands.Move.Execute(new Cursor(Movement.Up(editor)), editor);
                         EditingCommands.SetMode.Execute(DefaultModes.Insert, editor);
                     }
                 },
                 { new EditGesture(Key.O), editor => {
-                        EditingCommands.AppendNewline.Execute(null, editor);
+                        EditingCommands.AppendText.Execute("\n", editor);
                         EditingCommands.SetMode.Execute(DefaultModes.Insert, editor);
                     }
                 },
@@ -66,7 +67,7 @@ namespace Agent {
                         if (Clipboard.ContainsText(TextDataFormat.Text))
                             for(int times = editor.Count == null ? 1 : (int)editor.Count;
                                     times > 0; times -= 1)
-                                EditingCommands.PrependText.Execute(Clipboard.GetText(TextDataFormat.Text), editor);
+                                EditingCommands.InsertText.Execute(Clipboard.GetText(TextDataFormat.Text), editor);
                     }
                 },
                 { new EditGesture(Key.P), editor => {
@@ -81,8 +82,18 @@ namespace Agent {
                 // Changing modes
                 //
                 { new EditGesture(Key.I), editor => EditingCommands.SetMode.Execute(Insert, editor) },
+                { new EditGesture(Key.I, ModifierKeys.Shift), editor => {
+                        EditingCommands.Move.Execute(new Cursor(Movement.LineHome(editor)), editor);
+                        EditingCommands.SetMode.Execute(Insert, editor);
+                    }
+                },
                 { new EditGesture(Key.A), editor => {
                         EditingCommands.Move.Execute(new Cursor(Movement.Right(editor)), editor);
+                        EditingCommands.SetMode.Execute(Insert, editor);
+                    }
+                },
+                { new EditGesture(Key.A, ModifierKeys.Shift), editor => {
+                        EditingCommands.Move.Execute(new Cursor(Movement.LineEnd(editor)), editor);
                         EditingCommands.SetMode.Execute(Insert, editor);
                     }
                 },
@@ -109,6 +120,12 @@ namespace Agent {
                         EditingCommands.Yank.Execute(range, editor)) },
 
                 { new EditGesture(Key.Enter), editor => EditingCommands.RunCommand.Execute(null, editor) },
+
+                //
+                // Undo
+                //
+                { new EditGesture(Key.U), editor =>
+                    EditingCommands.Undo.Execute(null, editor) },
             }
         };
 
@@ -124,6 +141,7 @@ namespace Agent {
                         EditingCommands.SetMode.Execute(Command, editor);
                     }
                 },
+                { new EditGesture(Key.F), editor => EditingCommands.OpenFile.Execute(null, editor) },
             }
         };
 
@@ -132,6 +150,7 @@ namespace Agent {
             Cursor = CursorType.Bar,
             Gestures = new Dictionary<InputGesture, Action<PadEditor>> {
                 { new EditGesture(Key.Escape), editor => EditingCommands.SetMode.Execute(Command, editor) },
+                { new EditGesture(Key.OemOpenBrackets, ModifierKeys.Control), editor => EditingCommands.SetMode.Execute(Command, editor) },
                 { new EditGesture(Key.Enter), editor => EditingCommands.InsertNewline.Execute(null, editor) },
                 { new EditGesture(Key.Back), editor => EditingCommands.Delete.Execute(Movement.Left(editor), editor) },
                 { new EditGesture(Key.Delete), editor => EditingCommands.Delete.Execute(Movement.Right(editor), editor) },

@@ -131,6 +131,22 @@ namespace Agent {
                 CurrentLine.Cursor = Cursor;
         }
 
+        public void InsertText(Cursor cursor, string text) {
+            if(text.Contains('\n')) {
+                var lines = text.Split('\n');
+                foreach(string line in lines.Take(lines.Count() - 1)) {
+                    InsertLine(cursor.Row, line);
+                    cursor.Row += 1;
+                }
+            }
+            else {
+                Lines[cursor.Row].Text = Lines[cursor.Row].Text.Insert(
+                        cursor.Column,
+                        text);
+                cursor.Column += text.Length;
+            }
+        }
+
         public string GetText(Range range, bool delete) {
             string text = "";
 
@@ -165,15 +181,15 @@ namespace Agent {
             // if we're doing a characterwise get
             else {
                 Line line = Lines[range.StartRow];
-                int length = range.EndColumn - range.StartColumn + 1;
+                int length = range.EndColumn - range.StartColumn;
 
                 if(length + range.StartColumn > line.Text.Length)
                     length = line.Text.Length - range.StartColumn;
 
                 if(length > 0) {
-                    text += line.Text.Substring(range.StartColumn, length - 1);
+                    text += line.Text.Substring(range.StartColumn, length);
                     if(delete)
-                        line.Text = line.Text.Remove(range.StartColumn, length - 1);
+                        line.Text = line.Text.Remove(range.StartColumn, length);
                 }
             }
 

@@ -76,7 +76,7 @@ namespace Agent {
             int chars = editor.Count ?? 1;
 
             return new Range(editor.Pad.Cursor) {
-                StartColumn = editor.Pad.Column - 1,
+                StartColumn = editor.Pad.Column,
                 EndColumn = editor.Pad.Column - chars
             };
         }
