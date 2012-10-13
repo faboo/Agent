@@ -25,8 +25,6 @@ namespace Agent {
         }
 
         public void Init() {
-            DataStore.Initialize();
-
             this.InitializeComponent();
 
             DispatcherUnhandledException += OnDispatcherUnhandledException;

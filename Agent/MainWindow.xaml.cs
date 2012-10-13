@@ -27,8 +27,10 @@ namespace Agent {
 		}
 
         public MainWindow() {
+            DataStore.Initialize();
 
             InitializeComponent();
+            
             Pad = new Pad();
 
             editor.Focus();

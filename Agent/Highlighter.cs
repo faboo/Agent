@@ -13,7 +13,7 @@ namespace Agent {
             {
                 new Regex(@"\d\d?/\d\d?/(\d\d)?\d\d"),
                 new Highlight {
-                    Foreground = Colors.Blue
+                    Foreground = Colors.Blue,
                 }
             },
             // dollars
@@ -35,7 +35,17 @@ namespace Agent {
                 new Regex(@"^\s+[^:\s]+:"),
                 new Highlight {
                     Weight = FontWeights.Bold,
-                    Foreground = Colors.DarkSlateGray
+                    Foreground = Colors.DarkSlateGray,
+                    Background = Colors.LightCyan
+                }
+            },
+            // command argument values
+            {
+                new Regex(@"^(?=\s+[^:\s]+:).*$"),
+                new Highlight {
+                    Weight = FontWeights.Bold,
+                    Foreground = Colors.Black,
+                    Background = new Color() { A = 30, R = 255, G = 0, B = 0 }
                 }
             },
         };

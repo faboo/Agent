@@ -53,8 +53,10 @@ namespace Agent {
         private string Recall(Dictionary<string, string> args) {
             if(args["recall"] == "today")
                 return String.Join("\n", memories.Get(DateTime.Today));
-            else if (args["recall"] == "tomorrow")
+            else if(args["recall"] == "tomorrow")
                 return String.Join("\n", memories.Get(DateTime.Today.AddDays(1)));
+            else if(String.IsNullOrWhiteSpace(args["recall"]))
+                return String.Join("\n", memories.GetTop(10).Select(m => "recall:"+m));
             else
                 return String.Join("\n", memories.Get(args["recall"]));
         }

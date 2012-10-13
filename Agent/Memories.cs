@@ -79,5 +79,23 @@ namespace Agent {
 
             return text;
         }
+
+        public IEnumerable<string> GetTop(int top) {
+            var command = DataStore.Connection.CreateCommand();
+            SqlCeDataReader reader = null;
+            List<string> text = new List<string>();
+
+            command.CommandText = "SELECT TOP (?) [name] FROM [memories]";
+            command.Parameters.Add(new SqlCeParameter("top", top));
+
+            reader = command.ExecuteReader();
+
+            while(reader.Read())
+                text.Add(reader.GetString(0));
+
+            command.Dispose();
+
+            return text;
+        }
     }
 }

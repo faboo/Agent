@@ -1,17 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using System.Globalization;
 
 namespace Agent {
     public class LinePresenter : Control {
@@ -27,8 +18,6 @@ namespace Agent {
 			set { SetValue(LineProperty, value); }
 		}
 
-        private FormattedText formattedText = null;
-
         private Typeface CreateTypeface() {
             return new Typeface(FontFamily, FontStyle, FontWeight, FontStretch);
         }
@@ -37,36 +26,80 @@ namespace Agent {
             return new Typeface(FontFamily, highlight.Style, highlight.Weight, FontStretch);
         }
 
-        private FormattedText MeasureText(double width) {
-            if (formattedText == null) {
-                formattedText = new FormattedText(
-                    String.IsNullOrEmpty(Line.Text)? " " : Line.Text,
+        private double GetTextHeight(double width) {
+            var font = this.GetFont();
+            int lineWidth = (int)(width / font.Width);
+            int lines = 1 + Line.Text.Length / lineWidth;
+
+            return lines * font.Height;
+        }
+
+        private FormattedText MeasureText(string text) {
+            return new FormattedText(
+                    String.IsNullOrEmpty(text) ? " " : text,
                     CultureInfo.CurrentUICulture,
                     FlowDirection,
                     CreateTypeface(),
                     FontSize,
-                    Foreground);
-                formattedText.MaxTextWidth = width;
-            }
-
-            return formattedText;
+                    Foreground) {
+                        MaxTextWidth = ActualWidth
+                    };
         }
 
-        private FormattedText RenderHighlight(Highlight highlight) {
-            FormattedText text = new FormattedText(
+        private void RenderHighlight(DrawingContext drawingContext, Highlight highlight) {
+			RenderText(drawingContext, highlight.Foreground, highlight.Background, highlight.Start, highlight.Length);
+		}
+
+        private FormattedText RenderHighlight(DrawingContext drawingContext, int line, Highlight highlight) {
+            var font = this.GetFont();
+			int lineWidth = (int)(this.ActualWidth / font.Width);
+            return new FormattedText(
                 Line.Text.Substring(highlight.Start, highlight.Length),
                 CultureInfo.CurrentUICulture,
                 FlowDirection,
                 CreateTypeface(highlight),
                 FontSize,
-                new SolidColorBrush(highlight.Foreground));
-            text.MaxTextWidth = formattedText.MaxTextWidth;
-
-            return text;
+                new SolidColorBrush(highlight.Foreground)) {
+                    MaxTextWidth = ActualWidth
+                };
         }
 
-        private double GetHighlightOffset(Highlight highlight) {
-            return this.GetFont().Width * highlight.Start;
+		private void RenderText(DrawingContext context, Brush foreground, Brush background, int textOffset, int textWidth){
+			var font = this.GetFont();
+			int lineWidth = (int)(this.ActualWidth / font.Width);
+
+			while(textWidth > 0){
+				int width = Math.Min(lineWidth - (textOffset%lineWidth), textWidth);
+				int line = textOffset/lineWidth;
+				double y = line * font.Height;
+                double x = textOffset % lineWidth * font.Width;
+				var format = new FormattedText(
+						Line.Text.Substring(textOffset, width),
+						CultureInfo.CurrentUICulture,
+						FlowDirection,
+						CreateTypeface(),
+						FontSize,
+						foreground);
+
+                if(background != null)
+                    context.DrawRectangle(
+                        background,
+                        new Pen(background, 1),
+                        new Rect(x, y, width * font.Width, font.Height));
+                context.DrawText(format, new Point(x, y));
+				textOffset += width;
+                textWidth -= width;
+			}
+		}
+
+		private void RenderText(DrawingContext context, Color foreground, Color background, int textOffset, int textWidth){
+			RenderText(context, new SolidColorBrush(foreground), new SolidColorBrush(background), textOffset, textWidth);
+		}
+
+        private Point GetHighlightOffset(int lineWidth, Highlight highlight) {
+            return new Point(
+                this.GetFont().Width * (highlight.Start % lineWidth),
+                this.GetFont().Height * (highlight.Start / lineWidth));
         }
 
         private void OnLineChanged(Line oldValue) {
@@ -80,7 +113,6 @@ namespace Agent {
         }
 
         private void OnLineModified(object sender, EventArgs args) {
-            formattedText = null;
             InvalidateMeasure();
             InvalidateVisual();
         }
@@ -89,20 +121,15 @@ namespace Agent {
             if(Line == null)
                 return new Size();
 
-            FormattedText text = MeasureText(constraint.Width);
-
-            return new Size(constraint.Width, text.Height + text.LineHeight);
+            return new Size(constraint.Width, GetTextHeight(constraint.Width));
         }
 
         protected override void OnRender(DrawingContext drawingContext) {
             if(Line != null) {
-                drawingContext.DrawText(formattedText, new Point(0, 0));
+                RenderText(drawingContext, Foreground, Background, 0, Line.Text.Length);
 
-                foreach(Highlight hl in Line.Highlights) {
-                    drawingContext.DrawText(
-                        RenderHighlight(hl),
-                        new Point(GetHighlightOffset(hl), 0));
-                }
+                foreach(Highlight hl in Line.Highlights)
+					RenderHighlight(drawingContext, hl);
             }
         }
 

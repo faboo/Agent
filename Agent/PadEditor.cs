@@ -409,7 +409,7 @@ namespace Agent {
             string command = null;
             Dictionary<string, string> commandArgs = new Dictionary<string,string>();
             int start = Pad.Cursor.Row;
-            int end = Pad.Cursor.Row+1;
+            int end = Pad.Cursor.Row;
             string result = null;
 
             while (start > 0
@@ -422,7 +422,7 @@ namespace Agent {
                     && Pad.Lines[end].Text.StartsWith(" "))
                 end += 1;
 
-            foreach (var line in Pad.Lines.Skip(start).Take(end - start)) {
+            foreach (var line in Pad.Lines.Skip(start).Take(1 + end - start)) {
                 var arg = line.Text.Split(new char[] { ':' }, 2);
 
                 if (command == null)

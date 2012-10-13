@@ -20,7 +20,6 @@ namespace Agent {
         public static RoutedCommand InsertNewline = new RoutedCommand("InsertNewline", typeof(EditingCommands));
         public static RoutedCommand AppendNewline = new RoutedCommand("AppendNewline", typeof(EditingCommands));
         public static RoutedCommand PrependNewline = new RoutedCommand("PrependNewline", typeof(EditingCommands));
-        //public static RoutedCommand PrependText = new RoutedCommand("PrependText", typeof(EditingCommands));
         public static RoutedCommand AppendText = new RoutedCommand("AppendText", typeof(EditingCommands));
         public static RoutedCommand InsertText = new RoutedCommand("InsertText", typeof(EditingCommands));
 

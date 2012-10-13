@@ -8,7 +8,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type local:LinePresenter}">
                     <Grid>
-                        <Border Name="PART_ContentHost" BorderThickness="0" BorderBrush="Blue" />
+                        <Border Name="PART_ContentHost" BorderThickness="0,0,0,0.5" BorderBrush="#603F" />
                         <local:CursorPresenter Cursor="{Binding Path=Line.Cursor,RelativeSource={RelativeSource Mode=TemplatedParent}}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
                     </Grid>
                 </ControlTemplate>
@@ -18,29 +18,6 @@
         <Setter Property="Focusable" Value="False" />
     </Style>
 
-    <!--    <Style TargetType="{x:Type local:PadEditor}">
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="{x:Type local:PadEditor}">
-                    <Border Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="3" FocusVisualStyle="{x:Null}">
-                            <ItemsControl ItemsSource="{Binding Pad.Lines,RelativeSource={RelativeSource TemplatedParent}}" FocusVisualStyle="{x:Null}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate DataType="local:Line">
-                                        <local:LinePresenter Line="{Binding}" />
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
-                    </Border>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-        <Setter Property="Background" Value="Wheat" />
-    </Style>-->
     <Style TargetType="{x:Type local:PadEditor}">
         <Setter Property="Template">
             <Setter.Value>
