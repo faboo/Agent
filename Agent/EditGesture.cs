@@ -9,6 +9,9 @@ namespace Agent {
         public Key Key { get; set; }
         public ModifierKeys Mods { get; set; }
 
+        public EditGesture() {
+        }
+
         public EditGesture(Key key) {
             Key = key;
             Mods = ModifierKeys.None;
@@ -47,6 +50,21 @@ namespace Agent {
 
         public override bool Matches(object targetElement, InputEventArgs args) {
             return args is KeyEventArgs && IsKey(args as KeyEventArgs);
+        }
+
+        public override string ToString() {
+            return Mods.ToString() + Key.ToString();
+        }
+
+        public override bool Equals(object obj) {
+            if(obj is EditGesture)
+                return Key == (obj as EditGesture).Key && Mods == (obj as EditGesture).Mods;
+            else
+                return base.Equals(obj);
+        }
+
+        public override int GetHashCode() {
+            return ToString().GetHashCode();
         }
     }
 }

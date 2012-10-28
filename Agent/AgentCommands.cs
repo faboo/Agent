@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
+using System.Windows.Media;
+using System.Windows;
 
 namespace Agent {
 
@@ -14,15 +17,23 @@ namespace Agent {
             memories = new Memories();
             definitions = new Definitions();
             commands = new Dictionary<string, AgentCommand>{
-                { "remember", new AgentCommand{ Exec = Remember, Params = new List<string> { "this" } } },
+                { "remember", new AgentCommand{ Exec = Remember,
+                    Params = new List<string> { "this" } } },
                 { "recall", new AgentCommand{ Exec = Recall } },
                 { "define", new AgentCommand{ Exec = Define } },
+                { "hilight", new AgentCommand{ Exec = Hilight,
+                    Params = new List<string> { "bg", "fg", "st", "wt" } } },
+                { "map", new AgentCommand{ Exec = Map,
+                    Params = new List<string> { "mode", "macro" } } },
 
                 { "help", new AgentCommand{ Exec = Help } },
             };
         }
 
         public bool IsCommand(string command) {
+            if(command.Contains(':'))
+                command = command.Split(':')[0].Trim();
+            
             return commands.ContainsKey(command.ToLower());
         }
 
@@ -32,6 +43,35 @@ namespace Agent {
 
         public string Invoke(string command, Dictionary<string, string> args) {
             return commands[command.ToLower()].Exec(args);
+        }
+
+        public void ParseAndRun(IList<string> lines, int start, out Range size, out string result) {
+            string command = null;
+            Dictionary<string, string> commandArgs = new Dictionary<string, string>();
+            int end = start;
+
+            while(end+1 < lines.Count
+                    && lines[end + 1].Contains(":")
+                    && lines[end + 1].StartsWith(" "))
+                end += 1;
+
+            foreach(var line in lines.Skip(start).Take(1 + end - start)) {
+                var arg = line.Split(new char[] { ':' }, 2);
+
+                if(command == null)
+                    command = arg[0].Trim();
+
+                commandArgs[arg[0].Trim()] = arg[1].Trim();
+            }
+
+            result = Invoke(command, commandArgs);
+            if(result != null && !result.EndsWith("\n"))
+                result = result + '\n';
+
+            size = new Range(start) {
+                EndRow = end,
+                EndColumn = lines[end].Length
+            };
         }
 
         private string Remember(Dictionary<string, string> args) {
@@ -63,6 +103,34 @@ namespace Agent {
 
         private string Define(Dictionary<string, string> args) {
             return definitions.Define(args["define"]);
+        }
+
+        private string Hilight(Dictionary<string, string> args) {
+            Regex regex = new Regex(args["hilight"]);
+            Highlight hilight = new Highlight();
+
+            if(args.ContainsKey("bg"))
+                hilight.Background = Highlight.ParseColor(args["bg"]);
+            if(args.ContainsKey("fg"))
+                hilight.Foreground = Highlight.ParseColor(args["fg"]);
+            if(args.ContainsKey("st"))
+                hilight.Style = Highlight.ParseStyle(args["st"]);
+            if(args.ContainsKey("wt"))
+                hilight.Weight = Highlight.ParseWeight(args["wt"]);
+
+            Highlighter.Add(regex, hilight);
+
+            return "";
+        }
+
+        private string Map(Dictionary<string, string> args) {
+            string key = args["map"];
+            string mode = args["mode"];
+            string macro = args["macro"];
+
+            MapResolver.Map(mode, key, macro);
+
+            return "";
         }
 
         private string Help(Dictionary<string, string> args) {

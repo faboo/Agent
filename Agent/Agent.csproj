@@ -26,7 +26,7 @@
     <UpdatePeriodically>false</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>10</ApplicationRevision>
+    <ApplicationRevision>11</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
@@ -92,12 +92,14 @@
     <Compile Include="Highlight.cs" />
     <Compile Include="Highlighter.cs" />
     <Compile Include="LinesPresenter.cs" />
+    <Compile Include="MapResolver.cs" />
     <Compile Include="MergedDictionary.cs" />
     <Compile Include="MotionMode.cs" />
     <Compile Include="Movement.cs" />
     <Compile Include="Range.cs" />
     <Compile Include="Reminder.cs" />
     <Compile Include="Reminders.cs" />
+    <Compile Include="Script.cs" />
     <Compile Include="WordnikDef.cs" />
     <Page Include="App.xaml">
       <Generator>MSBuild:Compile</Generator>

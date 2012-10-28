@@ -35,6 +35,8 @@ namespace Agent {
         private int? insertStarted = null;
 
         public PadEditor() {
+            Script rc;
+
             IsTabStop = false;
 
             Commands = new AgentCommands();
@@ -57,7 +59,18 @@ namespace Agent {
             CommandBindings.Add(new CommandBinding(EditingCommands.Delete, ExecuteDelete));
             CommandBindings.Add(new CommandBinding(EditingCommands.Undo, ExecuteUndo, CanUndo));
 
+            CommandBindings.Add(new CommandBinding(EditingCommands.Macro, ExecuteMacro));
+
             SetMode(DefaultModes.Command);
+
+            MapResolver.MapAdded += OnMappingAdded;
+
+            try {
+                rc = new Script(Commands, Script.DefaultScript);
+                rc.Run();
+            }
+            catch {
+            }
         }
 
 		public Pad Pad
@@ -106,6 +119,13 @@ namespace Agent {
             linesPresenter.ScrollChanged += OnScrolled;
         }
 
+        public void AddToCount(string chars) {
+            if(count == null)
+                count = chars;
+            else
+                count += chars;
+        }
+
         private void PushChange(IChange change) {
             undoLevels.Add(change);
             if(undoLevels.Count >= maxUndoLevels)
@@ -141,6 +161,11 @@ namespace Agent {
                 Pad.Cursor.Row = linesPresenter.LineOffset + linesPresenter.VisibleLines;
         }
 
+        private void OnMappingAdded(Mode mode, InputGesture gesture, Action<PadEditor> action) {
+            if(mode == currentMode)
+                BindMacro(gesture, action);
+        }
+
         private void SetMode(Mode mode) {
             currentMode = mode;
             defaultInsert = mode.DefaultInsert;
@@ -157,6 +182,21 @@ namespace Agent {
                     new InputBinding(EditingCommands.HandleKey, ghp.Key) {
                         CommandParameter = ghp.Value
                     });
+            if(MapResolver.HasMacros(currentMode))
+                foreach(var ghp in MapResolver.GetMacros(currentMode))
+                    BindMacro(ghp.Key, ghp.Value);
+        }
+
+        private void BindMacro(InputGesture gesture, Action<PadEditor> action) {
+            var oldBinding = InputBindings.OfType<InputBinding>().FirstOrDefault(i =>
+                i.Gesture.Equals(gesture));
+
+            if(oldBinding != null)
+                InputBindings.Remove(oldBinding);
+            InputBindings.Add(
+                new InputBinding(EditingCommands.HandleKey, gesture) {
+                    CommandParameter = action
+                });
         }
 
         private string GetFile(int row, int column) {
@@ -194,10 +234,7 @@ namespace Agent {
                 count = null;
             }
             else if(args.Text.All(c => Char.IsDigit(c))) {
-                if(count == null)
-                    count = args.Text;
-                else
-                    count += args.Text;
+                AddToCount(args.Text);
             }
             // if we're getting a motion and they type a non-motion key, abandon the motion
             else if (withMotion != null) {
@@ -385,6 +422,17 @@ namespace Agent {
             args.CanExecute = undoLevels.Count > 0;
         }
 
+        private void ExecuteMacro(object sender, ExecutedRoutedEventArgs args) {
+            string macro = args.Parameter as string;
+            int count = Count ?? 1;
+
+            this.count = null;
+
+            for(; count > 0; count -= 1)
+                foreach(var action in MapResolver.ResolveMacro(currentMode, macro))
+                    action(this);
+        }
+
         private void ExecuteOpenFile(object sender, ExecutedRoutedEventArgs args) {
             int column = Pad.Column;
             string file = null;
@@ -406,10 +454,9 @@ namespace Agent {
         }
 
         private void ExecuteRunCommand(object sender, ExecutedRoutedEventArgs args) {
-            string command = null;
             Dictionary<string, string> commandArgs = new Dictionary<string,string>();
             int start = Pad.Cursor.Row;
-            int end = Pad.Cursor.Row;
+            Range size = null;
             string result = null;
 
             while (start > 0
@@ -417,31 +464,10 @@ namespace Agent {
                     && Pad.Lines[start].Text.StartsWith(" "))
                 start -= 1;
 
-            while (end < Pad.Lines.Count
-                    && Pad.Lines[end].Text.Contains(":")
-                    && Pad.Lines[end].Text.StartsWith(" "))
-                end += 1;
-
-            foreach (var line in Pad.Lines.Skip(start).Take(1 + end - start)) {
-                var arg = line.Text.Split(new char[] { ':' }, 2);
-
-                if (command == null)
-                    command = arg[0].Trim();
-
-                commandArgs[arg[0].Trim()] = arg[1].Trim();
-            }
-
-            result = Commands.Invoke(command, commandArgs);
+            Commands.ParseAndRun(Pad.Lines.Select(l => l.Text).ToList(), start, out size, out result);
 
             if (result != null) {
-                Range range = new Range(start) {
-                        EndRow = end,
-                        EndColumn = Pad.Lines[end].Text.Length
-                    };
-
-                if(!result.EndsWith("\n"))
-                    result = result + '\n';
-                EditingCommands.Delete.Execute(range, this);
+                EditingCommands.Delete.Execute(size, this);
                 EditingCommands.InsertText.Execute(result, this);
             }
         }

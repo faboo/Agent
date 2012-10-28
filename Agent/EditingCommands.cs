@@ -23,6 +23,8 @@ namespace Agent {
         public static RoutedCommand AppendText = new RoutedCommand("AppendText", typeof(EditingCommands));
         public static RoutedCommand InsertText = new RoutedCommand("InsertText", typeof(EditingCommands));
 
+        public static RoutedCommand Macro = new RoutedCommand("Macro", typeof(EditingCommands));
+
         public static RoutedCommand OpenFile = new RoutedCommand("OpenFile", typeof(EditingCommands));
 
         public static RoutedCommand RunCommand = new RoutedCommand("RunCommand", typeof(EditingCommands));

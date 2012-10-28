@@ -9,46 +9,11 @@ using System.Windows;
 namespace Agent {
     public static class Highlighter {
         private static Dictionary<Regex, Highlight> Highlights = new Dictionary<Regex, Highlight> {
-            // dates
-            {
-                new Regex(@"\d\d?/\d\d?/(\d\d)?\d\d"),
-                new Highlight {
-                    Foreground = Colors.Blue,
-                }
-            },
-            // dollars
-            {
-                new Regex(@"\$\d+(\.\d+)?"),
-                new Highlight {
-                    Foreground = Colors.DarkGreen
-                }
-            },
-            // commands
-            {
-                new Regex(@"^[^:\s]+:"),
-                new Highlight {
-                    Weight = FontWeights.Bold
-                }
-            },
-            // command arguments
-            {
-                new Regex(@"^\s+[^:\s]+:"),
-                new Highlight {
-                    Weight = FontWeights.Bold,
-                    Foreground = Colors.DarkSlateGray,
-                    Background = Colors.LightCyan
-                }
-            },
-            // command argument values
-            {
-                new Regex(@"^(?=\s+[^:\s]+:).*$"),
-                new Highlight {
-                    Weight = FontWeights.Bold,
-                    Foreground = Colors.Black,
-                    Background = new Color() { A = 30, R = 255, G = 0, B = 0 }
-                }
-            },
         };
+
+        public static void Add(Regex regex, Highlight hilight) {
+            Highlights[regex] = hilight;
+        }
 
         public static void Highlight(Line line) {
             line.Highlights.Clear();

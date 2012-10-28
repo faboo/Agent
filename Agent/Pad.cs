@@ -99,7 +99,9 @@ namespace Agent {
 
                 foreach (var line in Lines) {
                     command.Parameters.Clear();
-                    command.Parameters.Add(new SqlCeParameter("text", line.Text));
+                    command.Parameters.Add(new SqlCeParameter(
+                        "text",
+                        line.Text.Length > 256? line.Text.Substring(0, 256) : line.Text));
                     command.ExecuteNonQuery();
                 }
 
