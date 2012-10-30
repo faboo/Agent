@@ -12,7 +12,7 @@ namespace Agent {
         [DataMember]
         public string sourceDictionary;
         [DataMember]
-        public string[] exampleUses;
+        public WordnikExample[] exampleUses;
         [DataMember]
         public string[] relatedWords;
         [DataMember]
@@ -31,5 +31,11 @@ namespace Agent {
 
             return (WordnikDef[])des.ReadObject(stream);
         }
+    }
+
+    [DataContract]
+    public class WordnikExample {
+        [DataMember]
+        public string text;
     }
 }

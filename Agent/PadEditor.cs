@@ -28,6 +28,7 @@ namespace Agent {
         private Mode currentMode = null;
         private bool defaultInsert = false;
         private Action<Range> withMotion = null;
+        private Action<Char> withCharacter = null;
         private string count = null;
         private LinesPresenter linesPresenter = null;
         private int maxUndoLevels = 100;
@@ -111,6 +112,12 @@ namespace Agent {
                     });
 
             withMotion = with;
+        }
+
+        public void WithNextCharacter(Action<Char> with) {
+            InputBindings.Clear();
+
+            withCharacter = with;
         }
 
         public override void OnApplyTemplate() {
@@ -221,8 +228,21 @@ namespace Agent {
         }
 
         protected override void OnTextInput(TextCompositionEventArgs args) {
+            // if we're getting a motion and they type a non-motion key, abandon the motion
+            if (withMotion != null) {
+                RevertMode();
+                withMotion = null;
+                count = null;
+            }
+            // get the next character if there's an action to consume it
+            else if(withCharacter != null) {
+                RevertMode();
+                withCharacter(args.Text[0]);
+                withCharacter = null;
+                count = null;
+            }
             // do auto-insert for insert modes
-            if (defaultInsert) {
+            else if (defaultInsert) {
                 if(insertStarted == null)
                     insertStarted = Pad.Column;
 
@@ -235,12 +255,6 @@ namespace Agent {
             }
             else if(args.Text.All(c => Char.IsDigit(c))) {
                 AddToCount(args.Text);
-            }
-            // if we're getting a motion and they type a non-motion key, abandon the motion
-            else if (withMotion != null) {
-                RevertMode();
-                withMotion = null;
-                count = null;
             }
             else{
                 count = null;

@@ -18,6 +18,18 @@ namespace Agent {
 			set { SetValue(LineProperty, value); }
 		}
 
+        // TransformToAncestor (apparently) gives answers that are slightly off. This is a workaround.
+        public Rect VisualRect {
+            get {
+                return new Rect(this.VisualOffset.X, this.VisualOffset.Y, this.ActualWidth, this.ActualHeight);
+            }
+        }
+
+        public int GetVisualLineCount() {
+            //TODO: This is an appoximation
+            return Math.Max((int)Math.Ceiling((this.GetFont().Width * Line.Text.Length) / ActualWidth), 1);
+        }
+
         private Typeface CreateTypeface() {
             return new Typeface(FontFamily, FontStyle, FontWeight, FontStretch);
         }

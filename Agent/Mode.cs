@@ -50,6 +50,63 @@ namespace Agent {
                     EditingCommands.Move.Execute(new Cursor(Movement.Goto(editor)), editor) },
 
                 //
+                // Searching
+                //
+                { new EditGesture(Key.F), editor =>
+                    editor.WithNextCharacter(c => {
+                        string rest = editor.Pad.CurrentLine.Text.Substring(editor.Pad.Column);
+                        int location = rest.IndexOf(c);
+                        if(location != -1)
+                            EditingCommands.Move.Execute(new Cursor {
+                                    Row = editor.Pad.Row,
+                                    Column = editor.Pad.Column += location
+                                },
+                                editor);
+                    })
+                },
+                { new EditGesture(Key.F, ModifierKeys.Shift), editor =>
+                    editor.WithNextCharacter(c => {
+                        string rest = editor.Pad.CurrentLine.Text.Substring(0, editor.Pad.Column);
+                        int location = rest.LastIndexOf(c);
+                        if(location != -1)
+                            EditingCommands.Move.Execute(new Cursor {
+                                    Row = editor.Pad.Row,
+                                    Column = location
+                                },
+                                editor);
+                    })
+                },
+                { new EditGesture(Key.T), editor =>
+                    editor.WithNextCharacter(c => {
+                        if(editor.Pad.Column + 1 < editor.Pad.CurrentLine.Text.Length){
+                            string rest = editor.Pad.CurrentLine.Text.Substring(editor.Pad.Column + 1);
+                            int location = rest.IndexOf(c);
+                            if(location != -1)
+                                EditingCommands.Move.Execute(new Cursor {
+                                        Row = editor.Pad.Row,
+                                        Column = editor.Pad.Column += location
+                                    },
+                                    editor);
+                        }
+                    })
+                },
+                { new EditGesture(Key.T, ModifierKeys.Shift), editor =>
+                    editor.WithNextCharacter(c => {
+                        if(editor.Pad.Column > 0){
+                            string rest = editor.Pad.CurrentLine.Text.Substring(0, editor.Pad.Column - 1);
+                            int location = rest.LastIndexOf(c);
+                            if(location != -1)
+                                EditingCommands.Move.Execute(new Cursor {
+                                        Row = editor.Pad.Row,
+                                        Column = location + 1
+                                    },
+                                    editor);
+                        }
+                    })
+                },
+
+
+                //
                 // Pasting text
                 //
                 { new EditGesture(Key.O, ModifierKeys.Shift), editor => {

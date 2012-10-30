@@ -68,6 +68,27 @@ namespace Agent {
         }
 
         public int LineOffset {
+            set {
+                // to make this faster, we could cache the height of what's scrolled off.
+                int lineOffset = value;
+                int oldLineOffset = LineOffset;
+                double lineHeight = this.GetFont().Height;
+                double offset = 0.0;
+
+                if(lineOffset < 0)
+                    lineOffset = 0;
+
+                for(int idx = 0, line = 0; idx < lineOffset && line < Items.Count; ++line) {
+                    int visualHeight = GetLinePresenter(Items[line] as Line).GetVisualLineCount();
+
+                    idx += visualHeight;
+                    // Only scroll past a big line when we're scrolling up if it's not the top line on the screen.
+                    if(lineOffset > oldLineOffset || idx <= lineOffset)
+                        offset = idx * lineHeight;
+                }
+
+                SetVerticalOffset(offset);
+            }
             get {
                 double lineHeight = this.GetFont().Height;
 
@@ -86,11 +107,11 @@ namespace Agent {
         public event EventHandler ScrollChanged;
 
         public void LineUp() {
-            SetVerticalOffset(VerticalOffset - this.GetFont().Height);
+            LineOffset = LineOffset - 1;
         }
 
         public void LineDown() {
-            SetVerticalOffset(VerticalOffset + this.GetFont().Height);
+            LineOffset = LineOffset + 1;
         }
 
         public void LineLeft() {
@@ -106,25 +127,19 @@ namespace Agent {
         }
 
         public void MouseWheelUp() {
-            SetVerticalOffset(VerticalOffset - 3 * this.GetFont().Height);
+            LineOffset = LineOffset - 3;
         }
 
         public void MouseWheelDown() {
-            SetVerticalOffset(VerticalOffset + 3 * this.GetFont().Height);
+            LineOffset = LineOffset + 3;
         }
 
         public void PageUp() {
-            double lineHeight = this.GetFont().Height;
-            int lines = (int)(ViewportHeight / lineHeight);
-
-            SetVerticalOffset(VerticalOffset - lineHeight * lines);
+            LineOffset = LineOffset - VisibleLines;
         }
 
         public void PageDown() {
-            double lineHeight = this.GetFont().Height;
-            int lines = (int)(ViewportHeight / lineHeight);
-
-            SetVerticalOffset(VerticalOffset + lineHeight * lines);
+            LineOffset = LineOffset + VisibleLines;
         }
 
         public void PageLeft() {
@@ -134,7 +149,7 @@ namespace Agent {
         }
 
         public void ScrollIntoView(Line line) {
-            LinePresenter container = (LinePresenter)ItemContainerGenerator.ContainerFromItem(line);
+            LinePresenter container = GetLinePresenter(line);
 
             MakeVisible(container, new Rect(0, 0, container.ActualWidth, container.ActualHeight));
         }
@@ -146,16 +161,19 @@ namespace Agent {
             double lineHeight = this.GetFont().Height;
             Rect viewRect = new Rect(HorizontalOffset, VerticalOffset, ViewportWidth, ViewportHeight);
 
-            rectangle = visual.TransformToAncestor(this).TransformBounds(rectangle);
+            if(visual is LinePresenter)
+                rectangle = (visual as LinePresenter).VisualRect;
+            else
+                rectangle = visual.TransformToAncestor(this).TransformBounds(rectangle);
 
             if(!viewRect.Contains(rectangle)) {
                 if(rectangle.Top < viewRect.Top) {
-                    double offset = (Math.Floor((viewRect.Top + rectangle.Top) / lineHeight) - 2) * lineHeight;
+                    double offset = Math.Floor(rectangle.Top / lineHeight) * lineHeight;
 
                     SetVerticalOffset(offset);
                 }
                 else if(rectangle.Bottom > viewRect.Bottom) {
-                    double offset = (Math.Floor((rectangle.Bottom - viewRect.Bottom) / lineHeight) + 2) * lineHeight;
+                    double offset = Math.Ceiling((rectangle.Bottom - viewRect.Height) / lineHeight) * lineHeight;
 
                     SetVerticalOffset(offset);
                 }
@@ -248,6 +266,10 @@ namespace Agent {
                 presenter.ScrollOwner.InvalidateScrollInfo();
             if(presenter.ScrollChanged != null)
                 presenter.ScrollChanged(presenter, new EventArgs());
+        }
+
+        private LinePresenter GetLinePresenter(Line line) {
+            return (LinePresenter)ItemContainerGenerator.ContainerFromItem(line);
         }
     }
 }

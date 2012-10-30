@@ -25,6 +25,7 @@ namespace Agent {
                     Params = new List<string> { "bg", "fg", "st", "wt" } } },
                 { "map", new AgentCommand{ Exec = Map,
                     Params = new List<string> { "mode", "macro" } } },
+                { "source", new AgentCommand{ Exec = Source } },
 
                 { "help", new AgentCommand{ Exec = Help } },
             };
@@ -131,6 +132,24 @@ namespace Agent {
             MapResolver.Map(mode, key, macro);
 
             return "";
+        }
+
+        private string Source(Dictionary<string, string> args) {
+            string file = Regex.Replace(
+                args["source"],
+                @"~",
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+            Script script = new Script(this, file);
+            string result = "";
+
+            try {
+                script.Run();
+            }
+            catch(Exception ex) {
+                result = ex.Message;
+            }
+
+            return result;
         }
 
         private string Help(Dictionary<string, string> args) {
