@@ -183,6 +183,26 @@ namespace Agent {
                 //
                 { new EditGesture(Key.U), editor =>
                     EditingCommands.Undo.Execute(null, editor) },
+
+                //
+                // Replacing
+                //
+                { new EditGesture(Key.R), editor => {
+                        var range = Movement.Right(editor);
+                        editor.WithNextCharacter(character => {
+                                EditingCommands.Delete.Execute(range, editor);
+                                EditingCommands.InsertText.Execute(
+                                    character.Repeat(range.EndColumn - range.StartColumn),
+                                    editor);
+                            });
+                    }
+                },
+                { new EditGesture(Key.C), editor =>
+                    editor.WithMotion(range => {
+                        EditingCommands.Delete.Execute(range, editor);
+                        EditingCommands.SetMode.Execute(DefaultModes.Insert, editor);
+                    })
+                },
             }
         };
 

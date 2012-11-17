@@ -7,11 +7,16 @@ up quickly with a keyboard shortcut (see below). The text of the scratchpad is
 saved to disk whenever Agent loses focus however, should you need to shut it
 down or reboot. It also supports syntax highilighting, and a simple command language.
 
+The Keyboard
+------------
+
+Like vi, Agent is very keyboard-centric. 
+
 Commands
 --------
 
 To run a command from the scratchpad, simply enter its name followed by a colon
-and hit the <Enter> key from normal mode. If the command takes an argument, it
+and hit the &lt;Enter&gt; key from normal mode. If the command takes an argument, it
 is supplied after the colon. If the command takes additional arguments, they are
 supplied on the following lines by typing some space, the name of the argument,
 a colon, and then the intended value for the argument. Don't worry, hitting

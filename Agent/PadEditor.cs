@@ -103,6 +103,8 @@ namespace Agent {
         }
 
         public void WithMotion(Action<Range> with) {
+            defaultInsert = false;
+
             InputBindings.Clear();
 
             foreach (var ghp in currentMode.Motions.Gestures)
@@ -115,6 +117,8 @@ namespace Agent {
         }
 
         public void WithNextCharacter(Action<Char> with) {
+            defaultInsert = false;
+
             InputBindings.Clear();
 
             withCharacter = with;
@@ -175,13 +179,14 @@ namespace Agent {
 
         private void SetMode(Mode mode) {
             currentMode = mode;
-            defaultInsert = mode.DefaultInsert;
             Pad.Cursor.Type = mode.Cursor;
 
             RevertMode();
         }
 
         private void RevertMode() {
+            defaultInsert = currentMode.DefaultInsert;
+
             InputBindings.Clear();
 
             foreach (var ghp in currentMode.Gestures)
@@ -228,21 +233,8 @@ namespace Agent {
         }
 
         protected override void OnTextInput(TextCompositionEventArgs args) {
-            // if we're getting a motion and they type a non-motion key, abandon the motion
-            if (withMotion != null) {
-                RevertMode();
-                withMotion = null;
-                count = null;
-            }
-            // get the next character if there's an action to consume it
-            else if(withCharacter != null) {
-                RevertMode();
-                withCharacter(args.Text[0]);
-                withCharacter = null;
-                count = null;
-            }
             // do auto-insert for insert modes
-            else if (defaultInsert) {
+            if (defaultInsert) {
                 if(insertStarted == null)
                     insertStarted = Pad.Column;
 
@@ -253,8 +245,22 @@ namespace Agent {
                 
                 count = null;
             }
+            // update the count
             else if(args.Text.All(c => Char.IsDigit(c))) {
                 AddToCount(args.Text);
+            }
+            // if we're getting a motion and they type a non-motion key, abandon the motion
+            else if (withMotion != null) {
+                RevertMode();
+                withMotion = null;
+                count = null;
+            }
+            // get the next character if there's an action to consume it
+            else if(withCharacter != null) {
+                RevertMode();
+                withCharacter(args.Text[0]);
+                withCharacter = null;
+                count = null;
             }
             else{
                 count = null;
@@ -398,8 +404,8 @@ namespace Agent {
             Range range = args.Parameter as Range;
 
             Clipboard.SetText(Pad.GetText(range, false));
-            Pad.Cursor.Row = range.StartRow;
-            Pad.Cursor.Column = range.StartColumn;
+            Pad.Cursor.Row = range.EndRow;
+            Pad.Cursor.Column = range.EndColumn;
         }
 
         private void ExecuteMove(object sender, ExecutedRoutedEventArgs args) {
