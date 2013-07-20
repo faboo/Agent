@@ -169,7 +169,7 @@ namespace Agent {
                     text += line.Text.Substring(startColumn, length) + "\n";
 
                     // somehow this decision here is messed up and row doesn't advance right.
-                    if(startColumn == 0 && endColumn == line.Text.Length) {
+                    if(startColumn == 0 && endColumn >= line.Text.Length) {
                         if(delete)
                             Lines.RemoveAt(row);
                         range.EndRow -= 1;

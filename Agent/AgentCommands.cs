@@ -11,15 +11,19 @@ namespace Agent {
     public class AgentCommands {
         private Dictionary<string, AgentCommand> commands;
         private Memories memories;
+        private Reminders reminders;
         private Definitions definitions;
 
         public AgentCommands() {
             memories = new Memories();
+            reminders = new Reminders();
             definitions = new Definitions();
             commands = new Dictionary<string, AgentCommand>{
                 { "remember", new AgentCommand{ Exec = Remember,
-                    Params = new List<string> { "this" } } },
+                    Params = new List<string> { "this", "when" } } },
                 { "recall", new AgentCommand{ Exec = Recall } },
+                { "remind", new AgentCommand{ Exec = Remind,
+                    Params = new List<string> { "on", "message", "repeat" } } },
                 { "define", new AgentCommand{ Exec = Define } },
                 { "hilight", new AgentCommand{ Exec = Hilight,
                     Params = new List<string> { "bg", "fg", "st", "wt" } } },
@@ -100,6 +104,32 @@ namespace Agent {
                 return String.Join("\n", memories.GetTop(10).Select(m => "recall:"+m));
             else
                 return String.Join("\n", memories.Get(args["recall"]));
+        }
+
+        private string Remind(Dictionary<string, string> args) {
+            var message = "";
+            try {
+                string name = args["remind"];
+                string text = null;
+                DateTime time;
+
+                if(args.ContainsKey("on") && args["on"] != "")
+                    time = DateTime.Parse(args["on"]);
+                else
+                    throw new Exception("The argument 'on' is required.");
+
+                if(args.ContainsKey("message") && args["message"] != "")
+                    text = args["message"];
+
+                //frequency
+
+                reminders.Add(name, text, time, Frequency.Once);
+            }
+            catch(Exception ex) {
+                message = ex.Message;
+            }
+
+            return message;
         }
 
         private string Define(Dictionary<string, string> args) {
