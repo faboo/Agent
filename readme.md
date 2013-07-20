@@ -29,3 +29,10 @@ Take the remember command for example:
 
 An important command to remember is help. Run help with no arguments to get a
 list of all the commands available to you.
+
+
+Copying
+-------
+
+Agent is copyright Ray Wallace, 2013. You may copy this software under the
+terms of the GNU Public License, version 2.  See COPYING for details.
